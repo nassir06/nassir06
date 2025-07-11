@@ -1,0 +1,180 @@
+# imports libraries that I need to use
+import sys
+import pygame
+import random
+import time
+
+import pong
+
+pygame.mixer.init()
+pygame.init()
+pygame.font.init()
+
+# Height and width of the window
+height = 600
+width = 800
+speed = 5
+
+screen = pygame.display.set_mode((width, height), pygame.FULLSCREEN)
+
+
+class Pong(object):
+
+    def __init__(self, height, width):
+        # This function is where all the variables used in the program are written
+        self.width = width
+        self.height = height
+
+        self.speed = 5
+        self.timer = None
+        self.ball_speed_x = -1
+        self.ball_speed_y = -1
+        self.player1_speed = 0
+        self.player2_speed = 0
+        self.score1 = 0
+        self.score2 = 0
+
+        # Color of the background
+        self.color = (173, 255, 47)
+
+        # x-co,y-co,widthsize,heightsize
+        self.line = pygame.Rect(400, 0, 5, 600)
+        self.player1 = pygame.Rect(self.width - 50, self.height - 370, 10, 300)
+        self.player2 = pygame.Rect(self.width - 775, self.height - 370, 10, 300)
+        self.boundaryright = pygame.Rect(800, 0, 5, 600)
+        self.boundaryleft = pygame.Rect(-25, 0, 5, 600)
+        self.ball = pygame.Rect(self.width / 2, self.height / 2, 30, 30)
+
+        self.font = pygame.font.Font('freesansbold.ttf', 50)
+
+        # text for the score of player 1 and player 2
+        self.score_1 = self.font.render(str(self.score1), True, (255, 255, 255))
+        self.score_2 = self.font.render(str(self.score2), True, (255, 255, 255))
+
+        self.main()
+        self.ball_start()
+        self.ballmovement()
+        self.over()
+
+    def ball_start(self):
+        # The ball will restart when it hits the boundaries
+        current_time = pygame.time.get_ticks()
+        # places the ball at the centre of the screen
+        self.ball.center = (self.width / 2, self.height / 2)
+        if current_time - self.timer < 2100:
+            self.ball_speed_x, self.ball_speed_y = 0, 0
+        # changes the movement and direction of the ball
+        else:
+            self.ball_speed_x = -1 * random.choice((1, -1))
+            self.ball_speed_y = -1 * random.choice((1, -1))
+            self.timer = None
+
+    def ballmovement(self):
+        # Moves the ball across the screen
+        self.ball.x += self.ball_speed_x
+        self.ball.y += self.ball_speed_y
+        # if the ball hits the top of the screen it will move the ball to go down
+        if self.ball.top <= 0 or self.ball.bottom >= 600:
+            self.ball_speed_y *= -1
+        # if the ball hits either player 1 or 2 it will move the ball to the oppositie direction
+        if self.ball.colliderect(self.player1) or self.ball.colliderect(self.player2):
+            self.ball_speed_x *= -1
+            self.speed -= 1
+        # if the ball hits the boundaries it will move the ball back to the centre
+        elif self.ball.colliderect(self.boundaryright):
+            self.timer = pygame.time.get_ticks()
+            self.score1 = self.score1 + 1
+            self.speed = 5
+        # if the ball hits the boundaries it will move the ball back to the centre
+        elif self.ball.colliderect(self.boundaryleft):
+            self.timer = pygame.time.get_ticks()
+            self.score2 = self.score2 + 1
+            self.speed = 5
+
+    def over(self):
+        if self.score2 == 3:
+            gameover = self.font.render("Player 2 won", True, (255, 255, 255))
+            screen.blit(gameover, (self.width / 3 , self.height / 2))
+        elif self.score1 == 3:
+            gameover = self.font.render("Player 1 won", True, (255, 255, 255))
+            screen.blit(gameover, (self.width / 3 , self.height / 2))
+
+    def main(self):
+
+        while True:
+            # changes the speed of the ball
+            pygame.time.delay(int(self.speed))
+            screen.fill((0, 0, 0))
+
+            for event in pygame.event.get():
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE or event.key == pygame.QUIT:
+                        pygame.quit()
+                        sys.exit()
+                # if the player presses certain key down the paddles will move depending on which key is pressed
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_DOWN:
+                        self.player1_speed += 1
+                    if event.key == pygame.K_UP:
+                        self.player1_speed -= 1
+                    if event.key == pygame.K_w:
+                        self.player2_speed -= 1
+                    if event.key == pygame.K_s:
+                        self.player2_speed += 1
+                    # When the button "r" is pressed the screen will restart
+                    if event.key == pygame.K_r:
+                        pong.Pong(height, width)
+                # if the player lets go of the key then the paddle stop moving
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_DOWN:
+                        self.player1_speed -= 1
+                    if event.key == pygame.K_UP:
+                        self.player1_speed += 1
+                    if event.key == pygame.K_w:
+                        self.player2_speed += 1
+                    if event.key == pygame.K_s:
+                        self.player2_speed -= 1
+
+            self.player1.y += self.player1_speed
+            self.player2.y += self.player2_speed
+
+            self.ballmovement()
+
+            pygame.draw.rect(screen, (255, 255, 255), self.line)
+            pygame.draw.rect(screen, (255, 255, 255), self.boundaryleft)
+            pygame.draw.rect(screen, (255, 255, 255), self.boundaryright)
+            pygame.draw.rect(screen, (255, 255, 255), self.player2)
+            pygame.draw.rect(screen, (255, 255, 255), self.player1)
+            pygame.draw.ellipse(screen, (255, 255, 255), self.ball)
+            self.over()
+            score_1 = self.font.render(str(self.score1), True, (255, 255, 255))
+            score_2 = self.font.render(str(self.score2), True, (255, 255, 255))
+
+            screen.blit(score_1, (self.width / 4, 0))
+            screen.blit(score_2, (self.width / 4 + self.width / 2, 0))
+
+            if self.timer:
+                self.ball_start()
+
+            # when the paddle hit the top of the screen it will stop moving
+            if self.player1.top <= 0:
+                self.player1.top = 0
+            # when the paddle hit the bottom of the screen it will stop moving
+            if self.player1.bottom >= self.height:
+                self.player1.bottom = self.height
+            # when the paddle hit the top of the screen it will stop moving
+            if self.player2.top <= 0:
+                self.player2.top = 0
+            # when the paddle hit the bottom of the screen it will stop moving
+            if self.player2.bottom >= self.height:
+                self.player2.bottom = self.height
+
+            pygame.display.update()
+
+            if self.score1 == 3 or self.score2 == 3:
+                time.sleep(3)
+                pygame.quit()
+
+
+if __name__ == "__main__":
+    Pong(height, width)
