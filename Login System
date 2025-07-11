@@ -1,0 +1,162 @@
+import sqlite3
+from appjar import gui
+import appjar
+
+# Create an app instance to get the screen dimensions
+root = appjar.Tk()
+
+# Save the screen dimensions
+wnWidth = root.winfo_screenwidth()
+wnHeight = root.winfo_screenheight()
+
+# Destroy the app instance after retrieving the screen dimensions
+root.destroy()
+
+# Connect to the SQLite database (or create it if it doesn't exist)
+databaseConnection = sqlite3.connect("Players.db")
+# Create a cursor object to execute SQL queries
+cursor = databaseConnection.cursor()
+# Create a table named "Players" with the specified fields
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS Users (
+    username TEXT,
+    password TEXT
+)
+""")
+# Commit the changes to the database
+databaseConnection.commit()
+
+
+# Function to switch the frames of the screen
+def screen(buttons):
+    if buttons == "Menu":
+        app.raiseFrame("Menu")
+    else:
+        app.raiseFrame(buttons)
+        app.clearAllEntries()
+    if buttons == "Register":
+        reg(buttons)
+
+
+# shows the screen of the ping pong game so will switch from appjar to pygame
+def ponggame():
+    from pong import Pong
+    Pong(wnHeight, wnWidth)
+
+
+# Function to delete the screen when cancel is pressed
+def stop(button):
+    if button == "cancel":
+        app.stop()
+
+
+# Function to register the player in the game
+def reg(buttons):
+    if buttons == "Confirm":
+        print("hello")
+        pwd = app.getEntry("password:")
+        usr = app.getEntry("username")
+        age = app.getEntry("Age:")
+        print(pwd)
+        print(usr)
+        ageConverted = int(age or 0)
+        pwConverted = str(pwd or "")
+        # Validation
+        if usr == "" or pwd == "":  # if username or password is empty it won't be accepted
+            app.clearAllEntries()
+            app.setFont(10)
+            app.Label("Please Ensure you enter data into the input boxes" , font = 20 , fg = "white")
+        elif len(
+                pwConverted) < 8 or ageConverted < 15:  # if password is less than 8 characters or the user is younger than 15 it won't be accepted
+            app.clearAllEntries()
+            app.setFont(10)
+            app.addLabel("Please Ensure the data entered is valid")
+        # If all data is valid, it will be added to the database.
+        if len(pwConverted) >= 8 and usr != "" and ageConverted >= 15:
+            databaseConnection = sqlite3.connect("Users.db")
+            cursor = databaseConnection.cursor()
+            cursor.execute("INSERT INTO Users (username, password) VALUES (?,?)", (usr, pwd))
+            databaseConnection.commit()
+            databaseConnection.close()
+
+
+# Function to check if the details entered to login are correct
+def login():
+    # gets the values from the texts box
+    user = str(app.getEntry("Username"))
+    pass1 = app.getEntry("Password")
+    print(pass1)
+    print(user)
+    cursor.execute("SELECT username FROM Users")
+    rows = cursor.fetchall()
+    print(rows)
+    for row in rows:
+        usernameCompare = str(row)
+        usernameCompare = usernameCompare.replace("(", "").replace("'", "").replace(",", "").replace(")", "")
+        print(usernameCompare)
+        if usernameCompare == user:
+            print("username done")
+            cursor.execute("SELECT password FROM Users WHERE username = ? ", (user,))
+            passwordCompare = str(cursor.fetchall())
+            passwordCompare = passwordCompare.replace("(", "").replace("'", "").replace(",", "").replace(")", "")
+            print(passwordCompare)
+            # .replace("[", "").replace("]", "")
+            # pass1 = app.getEntry("password:")
+            print(passwordCompare)
+            pass1 = str(pass1)
+            if passwordCompare == pass1:
+                print("im in")
+                screen("Menu")
+                databaseConnection.close()
+            else:
+                print("failed")
+                app.clearAllEntries()
+                # app.setFont(10)
+                # app.addLabel("Please ensure the username or password entered is correct")
+
+
+# These are the frames for the screen
+# Where GUIs are made
+with gui("Login Window", (wnWidth, wnHeight)) as app:
+    app.setBg("black")
+    app.setFont(30)
+    # creates the loading screen
+    app.showSplash("PING PONG", fill='black', fg='white', font=44)
+    with app.frame("Login", 0, 0):
+        # screen name is called login
+        frame = "login"
+        # title of the page is login
+        app.label("Login", font=50, fg="white")
+        # username and password is written
+        app.label("Username", font=20, fg="white")
+        # text box for username and password is added
+        app.addEntry("Username")
+        # app.setFg("white")
+        app.setWidth(1)
+        app.label("Password", font=20, fg="white")
+        app.addSecretEntry("Password")
+        app.addButtons(["Register", "confirm"], [screen, login])
+    with app.frame("Register", 0, 0):
+        frame = "register"
+        app.label("Register", font=50, fg="white")
+        app.label("Age", font=20, fg="white")
+        app.addNumericEntry("Age:")
+        app.label("Username:", font=20, fg="white")
+        app.addEntry("username")
+        app.label("Password:", font=20, fg="white")
+        # app.setEntryDefault("username", "Enter a suitable username:")
+        app.addSecretEntry("password:")
+        app.buttons([("Login"), ("Confirm")], [screen, reg])
+
+    with app.frame("Menu", 0, 0):
+        # name of frame is Menu
+        frame = "menu"
+        # tile is added
+        app.label("WELCOME TO PING PONG")
+        # buttons are added with its functionality
+        app.button("Ping Pong", ponggame)
+        app.button("Options")
+
+    # app.addButton("cancel", stop)
+
+    app.raiseFrame("Login")  # Login screen will be shown first
